@@ -38,23 +38,25 @@ namespace NetCoreDI.Controllers
         public string GetValues()
         {
             StringBuilder result = new StringBuilder();
-            result.AppendLine($"First instance of Transient:  {_transientDisposable.ID}");
+            result.AppendLine($"Controller. ServiceProvider has code : {_serviceProvider.GetHashCode()}");
+            result.AppendLine($"First instance of Transient : {_transientDisposable.ID}");
             result.AppendLine($"Second instance of Transient: {_dependantOnTransient.ID}");
 
-            result.AppendLine($"First instance of Scoped:  {_scoped.ID}");
-            result.AppendLine($"Second instance of Scoped: {_dependantOnScoped.ID}");
-            result.AppendLine(Environment.NewLine);
-
-            result.AppendLine("Explicit resolutions:");
+            result.AppendLine($"First instance of Scoped    : {_scoped.ID}");
+            result.AppendLine($"Second instance of Scoped   : {_dependantOnScoped.ID}");
 
             var explicitlyResolved = _serviceProvider.GetService<Scoped>();
-            result.AppendLine($"Scoped explicitly resoleved at Controller level: {explicitlyResolved.ID}");
+            result.AppendLine($"Scoped explicitly resoleved at Controller level          : {explicitlyResolved.ID}");
+            result.AppendLine(Environment.NewLine);
+
+            result.AppendLine($"Singleton. ServiceProvider has code : {_singleton.ServiceProvider.GetHashCode()}");
+            result.AppendLine($"Scoped implicitly resoleved at Singleton level           : {_singleton.ScopedID}");
 
             var scopedFromSingleton = _singleton.ResolveScoped();
-            result.AppendLine($"Scoped explicitly resoleved at Singleton level. call 1: {scopedFromSingleton.ID}");
+            result.AppendLine($"Scoped explicitly resoleved at Singleton level. call 1   : {scopedFromSingleton.ID}");
 
             scopedFromSingleton = _singleton.ResolveScoped();
-            result.AppendLine($"Scoped explicitly resoleved at Singleton level. call 2: {scopedFromSingleton.ID}");
+            result.AppendLine($"Scoped explicitly resoleved at Singleton level. call 2   : {scopedFromSingleton.ID}");
 
             var transientFromSingleton = _singleton.ResolveTransient();
             result.AppendLine($"Transient explicitly resoleved at Singleton level. call 1: {transientFromSingleton.ID}");
@@ -62,6 +64,25 @@ namespace NetCoreDI.Controllers
             transientFromSingleton = _singleton.ResolveTransient();
             result.AppendLine($"Transient explicitly resoleved at Singleton level. call 2: {transientFromSingleton.ID}");
 
+            return result.ToString();
+        }
+
+        [HttpGet("safe")]
+        public string GetValuesSafe()
+        {
+            StringBuilder result = new StringBuilder();
+            using (var scope = _singleton.ServiceProvider.CreateScope())
+            {
+                using (var service = scope.ServiceProvider.GetService<TransientDisposable>())
+                {
+                    result.AppendLine($"Service HasCode    : {service.GetHashCode()}");
+                }
+
+                using (var service = scope.ServiceProvider.GetService<TransientDisposable>())
+                {
+                    result.AppendLine($"Service HasCode    : {service.GetHashCode()}");
+                }
+            }
             return result.ToString();
         }
     }
